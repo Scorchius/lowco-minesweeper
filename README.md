@@ -42,5 +42,9 @@ To Do:
 ----------
 - Have specific number of mines, rather than random
 - Highscore table
-- Adjustable grid and mine count via UI
+- Adjustable grid via UI
 - Add compatability with Python 2.7
+- Add more FishMoley
+- Add some Easter Eggs
+- Sound effects? If possible?
+- Don't let the first option be bomb.
