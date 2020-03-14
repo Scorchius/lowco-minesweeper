@@ -1,4 +1,4 @@
-# Python Version 2.7.3
+# Python Version 3.7.6
 # File: minesweeper.py
 
 from tkinter import *
@@ -8,9 +8,10 @@ import random
 import platform
 import time
 from datetime import time, date, datetime
+from PIL import ImageTk, Image
 
-SIZE_X = 10
-SIZE_Y = 10
+SIZE_X = 15 # I think these values are flipped, but leaving as is for now
+SIZE_Y = 30
 
 STATE_DEFAULT = 0
 STATE_CLICKED = 1
@@ -27,30 +28,46 @@ class Minesweeper:
 
         # import images
         self.images = {
-            "plain": PhotoImage(file = "images/tile_plain.gif"),
-            "clicked": PhotoImage(file = "images/tile_clicked.gif"),
-            "mine": PhotoImage(file = "images/tile_mine.gif"),
-            "flag": PhotoImage(file = "images/tile_flag.gif"),
-            "wrong": PhotoImage(file = "images/tile_wrong.gif"),
+            "plain" : PhotoImage(file = "images/tile_plain.gif"),
+            "clicked" : PhotoImage(file = "images/tile_clicked.gif"),
+            "mine" : PhotoImage(file = "images/lowco/tile_mine.png"),
+            "flag" : PhotoImage(file = "images/lowco/tile_flag.png"),
+            "wrong" : PhotoImage(file = "images/lowco/tile_wrong.png"),
+            "BEWM" : PhotoImage(file = "images/lowco/tile_bewm.png"),
+            "happy" : PhotoImage(file = "images/lowco/tile_happy.png"),
+            "win" : PhotoImage(file = "images/lowco/tile_win.png"),
+            "lose" : PhotoImage(file = "images/lowco/tile_lose.png"),
             "numbers": []
         }
         for i in range(1, 9):
             self.images["numbers"].append(PhotoImage(file = "images/tile_"+str(i)+".gif"))
 
-        # set up frame
+        # Set up frame
         self.tk = tk
-        self.frame = Frame(self.tk)
-        self.frame.pack()
+        #self.label = Label(self.tk, bg="purple", padx=500, pady=500)
+        self.frame = Frame(self.tk, bg="purple", padx=50, pady=30)
+        self.frame.grid(row=1, column=0,columnspan=SIZE_Y)
 
+        
         # set up labels/UI
         self.labels = {
-            "time": Label(self.frame, text = "00:00:00"),
-            "mines": Label(self.frame, text = "Mines: 0"),
-            "flags": Label(self.frame, text = "Flags: 0")
+            "time": Label(self.frame, text = "00:00:00", bg = "purple", fg="gold", font="Helvetica 10 bold"),
+            "mines": Label(self.frame, text = "Mines: 0", bg = "purple", fg="gold", font="Helvetica 10 bold"),
+            "flags": Label(self.frame, text = "Flags: 0", bg = "purple", fg="gold", font="Helvetica 10 bold")
         }
-        self.labels["time"].grid(row = 0, column = 0, columnspan = SIZE_Y) # top full width
-        self.labels["mines"].grid(row = SIZE_X+1, column = 0, columnspan = SIZE_Y/2) # bottom left
-        self.labels["flags"].grid(row = SIZE_X+1, column = SIZE_Y/2-1, columnspan = SIZE_Y/2) # bottom right
+
+        self.labels["time"].grid(row = 1, column = 0, columnspan = SIZE_Y) # top full width
+        self.labels["mines"].grid(row = SIZE_X+2, column = 0, columnspan = int(SIZE_Y/2)) #SIZE_Y/2) # bottom left
+        self.labels["flags"].grid(row = SIZE_X+2, column = int(SIZE_Y/2-1), columnspan = int(SIZE_Y/2)) # bottom right
+
+        # Create Menu:
+        #self.menubar = Menu(self.tk)
+        #self.filemenu = Menu(self.menubar, tearoff=0)
+        #self.filemenu.add_command(label="Easy", command=self.setDiff("Easy", True))
+        #self.filemenu.add_command(label="Medium", command=self.setDiff("Medium", True))
+        #self.filemenu.add_command(label="Hard", command=self.setDiff("Hard", True))
+        #self.menubar.add_cascade(label="File", menu=self.filemenu)
+        #self.tk.config(menu=self.menubar)
 
         self.restart() # start game
         self.updateTimer() # init timer
@@ -65,6 +82,10 @@ class Minesweeper:
         # create buttons
         self.tiles = dict({})
         self.mines = 0
+
+        self.MasterButton = Button(self.frame, image=self.images["happy"])
+        self.MasterButton.grid(row = 0, column =0, columnspan = SIZE_Y)
+
         for x in range(0, SIZE_X):
             for y in range(0, SIZE_Y):
                 if y == 0:
@@ -77,7 +98,7 @@ class Minesweeper:
                 gfx = self.images["plain"]
 
                 # currently random amount of mines
-                if random.uniform(0.0, 1.0) < 0.1:
+                if random.uniform(0.0, 1.0) < 0.3:
                     isMine = True
                     self.mines += 1
 
@@ -89,13 +110,13 @@ class Minesweeper:
                         "x": x,
                         "y": y
                     },
-                    "button": Button(self.frame, image = gfx),
+                    "button": Button(self.frame, image = gfx, activebackground="gold"),
                     "mines": 0 # calculated after grid is built
                 }
 
                 tile["button"].bind(BTN_CLICK, self.onClickWrapper(x, y))
                 tile["button"].bind(BTN_FLAG, self.onRightClickWrapper(x, y))
-                tile["button"].grid( row = x+1, column = y ) # offset by 1 row for timer
+                tile["button"].grid( row = x+2, column = y ) # offset by 2 row for timer
 
                 self.tiles[x][y] = tile
 
@@ -115,13 +136,19 @@ class Minesweeper:
         self.labels["flags"].config(text = "Flags: "+str(self.flagCount))
         self.labels["mines"].config(text = "Mines: "+str(self.mines))
 
-    def gameOver(self, won):
+    def gameOver(self, won, xnum, ynum):
         for x in range(0, SIZE_X):
             for y in range(0, SIZE_Y):
                 if self.tiles[x][y]["isMine"] == False and self.tiles[x][y]["state"] == STATE_FLAGGED:
                     self.tiles[x][y]["button"].config(image = self.images["wrong"])
                 if self.tiles[x][y]["isMine"] == True and self.tiles[x][y]["state"] != STATE_FLAGGED:
                     self.tiles[x][y]["button"].config(image = self.images["mine"])
+
+        if not won:
+            self.tiles[xnum][ynum]["button"].config(image = self.images["BEWM"])
+            self.MasterButton.config(image=self.images["lose"])
+        else:
+            self.MasterButton.config(image=self.images["win"])
 
         self.tk.update()
 
@@ -162,18 +189,18 @@ class Minesweeper:
         return neighbors
 
     def onClickWrapper(self, x, y):
-        return lambda Button: self.onClick(self.tiles[x][y])
+        return lambda Button: self.onClick(self.tiles[x][y], x, y)
 
     def onRightClickWrapper(self, x, y):
         return lambda Button: self.onRightClick(self.tiles[x][y])
 
-    def onClick(self, tile):
+    def onClick(self, tile, x, y):
         if self.startTime == None:
             self.startTime = datetime.now()
 
         if tile["isMine"] == True:
             # end game
-            self.gameOver(False)
+            self.gameOver(False, x, y)
             return
 
         # change image
@@ -187,7 +214,7 @@ class Minesweeper:
             tile["state"] = STATE_CLICKED
             self.clickedCount += 1
         if self.clickedCount == (SIZE_X * SIZE_Y) - self.mines:
-            self.gameOver(True)
+            self.gameOver(True, x, y)
 
     def onRightClick(self, tile):
         if self.startTime == None:
@@ -216,7 +243,7 @@ class Minesweeper:
 
     def clearSurroundingTiles(self, id):
         queue = deque([id])
-
+        
         while len(queue) != 0:
             key = queue.popleft()
             parts = key.split("_")
@@ -239,13 +266,31 @@ class Minesweeper:
         tile["state"] = STATE_CLICKED
         self.clickedCount += 1
 
+    #def setDiff(self, diff, bypass):
+    #    if diff == "Easy":
+    #        SIZE_X = 10
+    #        SIZE_Y = 10
+    #    elif diff == "Medium":
+    #        SIZE_X = 20
+    #        SIZE_Y = 15
+    #    elif diff == "Hard":
+    #        SIZE_X = 30
+    #        SIZE_Y = 20
+    #
+    #    if (bypass):
+    #        self.restart()
+
+
+
 ### END OF CLASSES ###
 
 def main():
     # create Tk instance
     window = Tk()
     # set program title
-    window.title("Minesweeper")
+    window.title("Lowco's Minesweeper")
+    # Change iso image
+    window.iconbitmap("images/lowco/logo.ico")
     # create game instance
     minesweeper = Minesweeper(window)
     # run event loop
